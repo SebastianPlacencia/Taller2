@@ -1,31 +1,33 @@
-# Sistema de Simulación y Monitoreo de Temperatura en ROS 2
+# Práctica: Simulación y Lectura de Temperatura con ROS 2 y Docker
 
-Este repositorio contiene los scripts fuente en Python para un sistema de simulación, lectura y graficación de datos de temperatura utilizando el framework ROS 2. El entorno de ejecución está containerizado mediante Docker para asegurar la reproducibilidad y facilitar el desarrollo continuo mediante volúmenes compartidos.
+Este repositorio contiene los archivos de Python desarrollados para la práctica de simulación, lectura y graficación de datos de un sensor de temperatura usando ROS 2. Todo el entorno está montado en Docker para no tener que instalar ROS 2 directamente en la computadora.
 
-## Arquitectura de Nodos
+## Nodos del Proyecto
 
-El proyecto se compone de tres nodos principales de ROS 2:
+El sistema funciona con tres nodos principales de ROS 2 que se comunican entre sí:
 
-* **sensor_node.py**: Actúa como publicador. Genera y publica datos de temperatura simulada en un tópico específico a una frecuencia predeterminada.
-* **reader_node.py**: Actúa como suscriptor. Recibe la información del nodo sensor, procesa los datos y los expone en la terminal para su verificación en tiempo real.
-* **plotter_node.py**: Actúa como nodo de visualización y almacenamiento. Se suscribe a los datos procesados y utiliza bibliotecas de graficación (ej. Matplotlib) para generar un gráfico actualizado cada 5 segundos. La imagen resultante (`sensor_plot.png`) se exporta automáticamente a un volumen compartido.
+* **sensor_node.py**: Es el publicador. Se encarga de simular las lecturas de un sensor de temperatura y enviar (publicar) esos datos constantemente a un tópico.
+* **reader_node.py**: Es el suscriptor. Escucha el tópico del sensor, recibe los datos de temperatura y los imprime en la terminal para que podamos verlos.
+* **plotter_node.py**: Es un nodo extra que también escucha los datos del sensor, pero en lugar de solo imprimirlos, usa una librería (como Matplotlib) para dibujar un gráfico. Este gráfico se actualiza y se guarda como imagen (`sensor_plot.png`) cada 5 segundos.
 
-## Configuración del Entorno (Docker)
+## Configuración de Docker
 
-El sistema está diseñado para ejecutarse dentro de un contenedor Docker automatizado. 
+Para que todo esto funcione sin problemas, configuramos un contenedor con algunas características clave:
 
-### 1. Dockerfile y Entrypoint
-El despliegue utiliza un `Dockerfile` que automatiza la instalación de dependencias y la configuración del espacio de trabajo de ROS 2. 
-Es imperativo que el archivo mantenga la instrucción `ENTRYPOINT ["/ros_entrypoint.sh"] CMD ["bash"]`. El script `ros_entrypoint.sh` proveído por la imagen oficial de ROS 2 se encarga de cargar las variables de entorno necesarias (`source /opt/ros/<distro>/setup.bash`) antes de ejecutar cualquier comando en el contenedor, garantizando que las bibliotecas de ROS 2 estén disponibles en el PATH.
+### 1. Dockerfile y el Entrypoint
+Usamos un `Dockerfile` para automatizar la instalación de las herramientas necesarias. Un detalle súper importante en este archivo es que mantenemos la línea:
+`ENTRYPOINT ["/ros_entrypoint.sh"] CMD ["bash"]`
 
-### 2. Volúmenes Compartidos (Shared Folder)
-Para facilitar el desarrollo y la extracción de datos, se emplea un volumen compartido entre el sistema host y el contenedor. 
-* **Desarrollo:** Los archivos `sensor_node.py`, `reader_node.py` y `plotter_node.py` residen físicamente en el host, permitiendo su edición mediante cualquier IDE local. Estos cambios se reflejan instantáneamente dentro del contenedor.
-* **Extracción de Gráficos:** El nodo `plotter_node` ejecuta la instrucción `plt.savefig('/ros2_ws/data/sensor_plot.png')`. Al mapear el directorio `/ros2_ws/data/` del contenedor hacia una carpeta local en el host, la gráfica generada queda inmediatamente accesible en el sistema operativo base sin necesidad de extracción manual.
+**¿Por qué es necesario?** Porque el archivo `ros_entrypoint.sh` (que ya viene en la imagen oficial de ROS 2) se encarga de ejecutar automáticamente el comando `source` del entorno de ROS. Si quitamos esa línea, el contenedor arrancaría, pero la terminal no reconocería ningún comando de ROS 2 (como `ros2 run` o `colcon build`).
 
-## Instrucciones de Ejecución
+### 2. Carpeta Compartida (Shared Folder)
+Para no tener que estar copiando archivos a cada rato dentro del contenedor, configuramos un volumen compartido (Shared folder) entre nuestra computadora y Docker. Esto nos da dos grandes ventajas:
+* **Para programar:** Podemos tener los archivos `sensor_node.py`, `reader_node.py` y `plotter_node.py` en nuestra compu y editarlos cómodamente con nuestro propio IDE. Los cambios se actualizan en el contenedor de inmediato.
+* **Para ver los resultados:** Como el `plotter_node` guarda la gráfica con el comando `plt.savefig('/ros2_ws/data/sensor_plot.png')`, al estar esa carpeta enlazada a nuestra computadora, la imagen del gráfico aparece directamente en nuestros archivos locales sin tener que hacer nada extra.
 
-Una vez que el contenedor esté en ejecución y el paquete compilado mediante `colcon build`, abra tres terminales independientes con acceso al contenedor y ejecute los nodos en el siguiente orden:
+## Pasos para ejecutarlo
+
+Una vez que el contenedor de Docker esté corriendo y los paquetes estén compilados, abre tres terminales diferentes (todas dentro del contenedor) y ejecuta un nodo en cada una:
 
 **Terminal 1: Iniciar el nodo sensor**
 ros2 run sensor_serial sensor_node
