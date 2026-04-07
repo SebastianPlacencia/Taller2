@@ -18,7 +18,7 @@ Para que todo esto funcione sin problemas, configuramos un contenedor con alguna
 Usamos un `Dockerfile` para automatizar la instalación de las herramientas necesarias. Un detalle súper importante en este archivo es que mantenemos la línea:
 `ENTRYPOINT ["/ros_entrypoint.sh"] CMD ["bash"]`
 
-**¿Por qué es necesario?** Porque el archivo `ros_entrypoint.sh` (que ya viene en la imagen oficial de ROS 2) se encarga de ejecutar automáticamente el comando `source` del entorno de ROS. Si quitamos esa línea, el contenedor arrancaría, pero la terminal no reconocería ningún comando de ROS 2 (como `ros2 run` o `colcon build`).
+Es necesario el archivo `ros_entrypoint.sh` (que ya viene en la imagen oficial de ROS 2) se encarga de ejecutar automáticamente el comando `source` del entorno de ROS. Si quitamos esa línea, el contenedor arrancaría, pero la terminal no reconocería ningún comando de ROS 2 (como `ros2 run` o `colcon build`).
 
 ### 2. Carpeta Compartida (Shared Folder)
 Para no tener que estar copiando archivos a cada rato dentro del contenedor, configuramos un volumen compartido (Shared folder) entre nuestra computadora y Docker. Esto nos da dos grandes ventajas:
